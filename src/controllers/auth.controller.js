@@ -1,9 +1,11 @@
 import User from "../models/user.model.js";
 import bcrypt from 'bcrypt'
 import jwt from "jsonwebtoken"
+import asyncHandler from "../utils/asyncHandler.js";
+import ApiError from "../utils/ApiError.js";
 
-export const register=async (req,res)=>{
-    try{
+export const register=asyncHandler (async (req,res)=>{
+    
         const {username,email,password}=req.body;
         if(!username || !email || !password){
             return res.status(400).json({
@@ -13,9 +15,7 @@ export const register=async (req,res)=>{
 
         const isExist = await User.findOne({email});
         if(isExist){
-            return res.status(409).json({
-                message:"user already exists"
-            })
+            throw new ApiError(404,"User already exists");
         }
 
         const hashedPswd= await bcrypt.hash(password,10);
@@ -29,13 +29,7 @@ export const register=async (req,res)=>{
             message:"Registration Success",
             user
         })
-    }catch(error){
-        res.status(500).json({
-            message:error.message
-        })
-    }
-
-}
+});
 
 export const login= async (req,res)=>{
 
