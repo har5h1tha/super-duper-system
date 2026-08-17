@@ -1,4 +1,5 @@
 import Group from "../models/group.model.js";
+import User from "../models/user.model.js"
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
@@ -23,4 +24,37 @@ export const createGroup = asyncHandler(async (req, res) => {
         message: "Group created successfully",
         group
     })
+})
+
+export const addGroupMembers = asyncHandler(async (req,res)=>{
+    const adminId = req.user.id;
+    const { userId }= req.body;
+    const groupId = req.params.groupId;
+
+    const group = await Group.findById( groupId)
+    if(!group){
+        throw new ApiError(404,"no such group")
+    }
+    
+    if(!group.admins.some(admin => admin.toString() === adminId )){
+        throw new ApiError(403,"forbidden admin")
+    }
+
+    const user = await User.findById(userId)
+     if(!user){
+        throw new ApiError(404,"invalid user")
+    }
+
+    if( group.members.some(member => member.toString() === userId)){
+        throw new ApiError(409,"already user is a member")
+    }
+    
+    group.members.push(userId);
+    await group.save();
+
+    res.status(200).json({
+        message:"SUCCESS in ADDING MEMBER",
+        group
+    })
+
 })
