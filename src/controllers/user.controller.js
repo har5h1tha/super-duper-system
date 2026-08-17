@@ -1,9 +1,10 @@
 import User from "../models/user.model.js";
+import ApiError from "../utils/ApiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
-export const getUsers = async (req, res) => {
-    try {
-
-        const loggedInUserId = req.user.id;
+export const getUsers = asyncHandler (async (req, res) => {
+ 
+    const loggedInUserId = req.user.id;
 
         const users = await User.find({
             _id: {
@@ -12,10 +13,16 @@ export const getUsers = async (req, res) => {
         }).select("-password");
 
         res.status(200).json(users);
+})
 
-    } catch (err) {
-        res.status(500).json({
-            message: err.message
-        });
+export const getMe= async(req,res) => {
+
+    const currUser = await User.findById(req.user.id).select("-password");
+
+    if(!currUser){
+        throw new ApiError(404,"user not found")
     }
-};
+
+    return res.status(200).json(currUser)
+
+}

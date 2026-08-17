@@ -31,28 +31,21 @@ export const register=asyncHandler (async (req,res)=>{
         })
 });
 
-export const login= async (req,res)=>{
+export const login=asyncHandler ( async (req,res)=>{
 
-    try{
         const {email,password}=req.body;
         if(!email || !password){
-            return res.status(400).json({
-                message:"All fields are required"
-            })
+            throw new ApiError(400, "Email and password are required");
         }
 
         const user = await User.findOne({email});
         if(!user){
-            return res.status(409).json({
-                message:"user invalid"
-            })
+            throw new ApiError(409,"invalid user")
         }
 
         const isMatch = await bcrypt.compare(password,user.password);
         if(!isMatch){
-            return res.status(401).json({
-                message: "user Invalid ",
-            })
+            throw new ApiError(409,"invalid user")
         }
         
         const token = jwt.sign(
@@ -64,11 +57,4 @@ export const login= async (req,res)=>{
             message:"login Success",
             token
         })
-    }catch(error){
-        res.status(500).json({
-            message:error.message
-        })
-    }
-
-
-}
+})

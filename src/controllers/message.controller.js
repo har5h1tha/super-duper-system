@@ -1,59 +1,67 @@
 import Message from "../models/message.model.js";
+import ApiError from "../utils/ApiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import { getIO, userSocketMap } from "../socket/socket.js";
 
-export const sendMessage = async (req, res) => {
-    try {
-        const sender = req.user.id;
-        const { receiver, content } = req.body;
+export const sendMessage = asyncHandler(async (req, res) => {
 
-        if (!receiver || !content) {
-            return res.status(400).json({
-                message: "Receiver and message are required"
-            });
-        }
+    const sender = req.user.id;
+    const { receiver, content } = req.body;
 
-        const newMessage = await Message.create({
-            sender,
-            receiver,
-            content
-        });
+    if (!receiver || !content) {
+        throw new ApiError(400, "Receiver and message are required");
+    }
 
-        return res.status(201).json({
-            message: "Message sent successfully",
-            data: newMessage
-        });
+    const newMessage = await Message.create({
+        sender,
+        receiver,
+        content
+    });
 
-    } catch (err) {
-        return res.status(500).json({
-            message: err.message
+    const io = getIO();
+
+    const receiverSockets = userSocketMap[receiver];
+
+    if (receiverSockets) {
+        receiverSockets.forEach((socketId) => {
+            io.to(socketId).emit("receive-message", newMessage);
         });
     }
-};
+    const senderSockets= userSocketMap[sender];
 
-export const getMessages = async (req, res) => {
-    try {
-        const myId = req.user.id;
-        const otherUserId = req.params.userId;
-
-        const messages = await Message.find({
-            $or: [
-                {
-                    sender: myId,
-                    receiver: otherUserId,
-                },
-                {
-                    sender: otherUserId,
-                    receiver: myId,
-                },
-            ],
-        }).sort({ createdAt: 1 });
-        console.log("My ID:", req.user.id);
-console.log("Other ID:", req.params.userId);
-
-        return res.status(200).json(messages);
-
-    } catch (err) {
-        return res.status(500).json({
-            message: err.message,
+    if (senderSockets) {
+        senderSockets.forEach((socketId) => {
+            io.to(socketId).emit("receive-message", newMessage);
         });
     }
-};
+
+    return res.status(201).json({
+        message: "Message sent successfully",
+        data: newMessage
+    });
+
+
+})
+
+export const getMessages = asyncHandler(async (req, res) => {
+
+    const myId = req.user.id;
+    const otherUserId = req.params.userId;
+
+    const messages = await Message.find({
+        $or: [
+            {
+                sender: myId,
+                receiver: otherUserId,
+            },
+            {
+                sender: otherUserId,
+                receiver: myId,
+            },
+        ],
+    }).sort({ createdAt: 1 });
+    console.log("My ID:", req.user.id);
+    console.log("Other ID:", req.params.userId);
+
+    return res.status(200).json(messages);
+})
