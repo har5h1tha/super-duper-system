@@ -205,7 +205,7 @@ A user is considered offline only after their last active socket disconnects.
 ### 1. Clone the repository
 
 ```bash id="x1kn6h"
-git clone <repository-url>
+git clone "https://github.com/har5h1tha/super-duper-system"
 cd collabhub
 ```
 
