@@ -1,7 +1,10 @@
 import { Server } from "socket.io";
 import Message from "../models/message.model.js";
 import socketAuth from "../middleware/socketAuth.middleware.js";
-
+import ApiError from "../utils/ApiError.js";
+import User from "../models/user.model.js";
+import Group from "../models/group.model.js";
+import GroupMessage from "../models/groupMessage.model.js";
 let io;
 const userSocketMap = {};
 
@@ -116,6 +119,161 @@ export const initSocket = (server) => {
 
             console.log("Disconnected", userSocketMap);
         });
+
+
+        socket.on("joinGroup", async (groupId) => {
+            try {
+                const group = await Group.findById(groupId);
+
+                if (!group) {
+                    return socket.emit("group-error", {
+                        message: "Group not found"
+                    });
+                }
+
+                const isMember = group.members.some(
+                    member => member.toString() === socket.user.id
+                );
+
+                if (!isMember) {
+                    return socket.emit("group-error", {
+                        message: "You are not a member of this group"
+                    });
+                }
+
+                socket.join(groupId);
+
+                socket.emit("group-joined", {
+                    groupId
+                });
+
+            } catch (error) {
+                console.error("Join group error:", error);
+
+                socket.emit("group-error", {
+                    message: "Failed to join group"
+                });
+            }
+        });
+
+        socket.on("send-group-message", async ({ groupId, content }) => {
+            try {
+                const senderId = socket.user.id;
+
+                if (!groupId) {
+                    return socket.emit("group-message-error", {
+                        message: "Group ID is required"
+                    });
+                }
+
+                if (!content || !content.trim()) {
+                    return socket.emit("group-message-error", {
+                        message: "Message content is required"
+                    });
+                }
+
+                const group = await Group.findById(groupId);
+
+                if (!group) {
+                    return socket.emit("group-message-error", {
+                        message: "Group not found"
+                    });
+                }
+
+                const isMember = group.members.some(
+                    member => member.toString() === senderId
+                );
+
+                if (!isMember) {
+                    return socket.emit("group-message-error", {
+                        message: "You are not a member of this group"
+                    });
+                }
+
+                const groupMessage = await GroupMessage.create({
+                    sender: senderId,
+                    group: groupId,
+                    content: content.trim()
+                });
+
+                io.to(groupId).emit("new-group-message", {
+                    message: groupMessage
+                });
+
+            } catch (error) {
+                console.error("Group message error:", error);
+
+                socket.emit("group-message-error", {
+                    message: "Failed to send group message"
+                });
+            }
+        });
+
+        socket.on("group-typing", async ({ groupId }) => {
+
+            const group = await Group.findById(groupId);
+            if (!group) {
+                return socket.emit("group-message-error", {
+                    message: "Group not found"
+                });
+            }
+
+            const isMember = group.members.some((member) => member.toString() === socket.user.id);
+            if (!isMember) {
+                return socket.emit("group-message-error", {
+                    message: "user not in group"
+                });
+            }
+
+            socket.to(groupId).emit("user-typing", {
+                userId: socket.user.id
+            })
+
+
+        })
+
+        socket.on("group-stop-typing", async ({ groupId }) => {
+
+            const group = await Group.findById(groupId);
+            if (!group) {
+                return socket.emit("group-message-error", {
+                    message: "Group not found"
+                });
+            }
+
+            const isMember = group.members.some((member) => member.toString() === socket.user.id);
+            if (!isMember) {
+                return socket.emit("group-message-error", {
+                    message: "user not in group"
+                });
+            }
+
+            socket.to(groupId).emit("user-stop-typing", {
+                userId: socket.user.id
+            })
+        })
+
+        socket.on("leaveGroup", async ({ groupId }) => {
+            const group = await Group.findById(groupId);
+            if (!group) {
+                return socket.emit("group-error", {
+                    message: "Group not found"
+                });
+            }
+
+            const isMember = group.members.some((member) => member.toString() === socket.user.id);
+            if (!isMember) {
+                return socket.emit("group-error", {
+                    message: "user not in group"
+                });
+            }
+
+            socket.leave(groupId)
+
+            socket.emit("group-left", {
+                groupId
+            });
+        })
     });
 };
 

@@ -1,4 +1,5 @@
 import Group from "../models/group.model.js";
+import GroupMessage from "../models/groupMessage.model.js";
 import User from "../models/user.model.js"
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -82,7 +83,7 @@ export const deleteGroupMembers = asyncHandler(async (req, res) => {
 
     group.members = group.members.filter(
         member => member.toString() !== delId
-    ); 
+    );
     await group.save();
 
     res.status(200).json({
@@ -90,5 +91,93 @@ export const deleteGroupMembers = asyncHandler(async (req, res) => {
         group
     })
 
+
+})
+
+export const messageGroupMembers = asyncHandler(async (req, res) => {
+    const { groupId } = req.params;
+    const sender = req.user.id;
+    const { content } = req.body;
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+        throw new ApiError(404, "Invalid Group")
+    }
+    if (!group.members.some(member => member.toString() === sender)) {
+        throw new ApiError(403, "Invalid user")
+    }
+
+    if (!content || !content.trim()) {
+        throw new ApiError(400, "Invalid message")
+    }
+
+    const grpMsg = await GroupMessage.create({
+        sender,
+        group: groupId,
+        content: content.trim()
+    })
+
+    res.status(201).json({
+        message: "SUccesfully sent",
+        grpMsg
+    })
+})
+
+export const getGroupMessages = asyncHandler(async (req, res) => {
+    const user = req.user.id;
+    const { groupId } = req.params;
+
+    const group = await Group.findById(groupId)
+    if (!group) {
+        throw new ApiError(404, "Invalid group")
+    }
+
+    const isMember = group.members.some((member) => member.toString() === user);
+    if (!isMember) {
+        throw new ApiError(403, "Invalid user")
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const messages = await GroupMessage.find({
+        group: groupId
+    })
+        .populate("sender", "username")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+
+    res.status(200).json({
+        message: "Fetched group messages SUCCESS",
+        messages
+    })
+});
+
+export const getGroupDetails = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { groupId } = req.params;
+
+    const group = await Group.findOne({
+        _id: groupId,
+        members: userId
+    })
+        .populate("members", "username")
+        .populate("admins", "username")
+        .populate("createdBy", "username");
+
+    if (!group) {
+        throw new ApiError(404, "Group not there")
+    }
+
+    const isMember = group.members.some((member) => member.toString() === userId);
+    if (!isMember) {
+        throw new ApiError(403, "Invalid user")
+    }
+    
+    res.status(200).json({
+        group
+    })
 
 })

@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client"
+import GroupList from "../components/GroupList";
 
 function Chat({ onLogout }) {
     const [userId, setUserId] = useState(null);
@@ -326,6 +327,12 @@ function Chat({ onLogout }) {
 
                 })}
             </div>
+            
+            <GroupList
+                onSelectGroup={(group) => {
+                    console.log("Selected group:", group);
+                }}
+            />
 
             {selectedUser && (
                 <div>
