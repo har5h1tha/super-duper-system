@@ -171,13 +171,20 @@ export const getGroupDetails = asyncHandler(async (req, res) => {
         throw new ApiError(404, "Group not there")
     }
 
-    const isMember = group.members.some((member) => member.toString() === userId);
-    if (!isMember) {
-        throw new ApiError(403, "Invalid user")
-    }
-    
     res.status(200).json({
         group
     })
 
+})
+
+export const getMyGroups= asyncHandler(async ( req,res)=>{
+    const userId = req.user.id;
+
+    const groups = await Group.find({
+        members:userId
+    }).select("name createdBy members admins")
+
+    res.status(200).json({
+        groups
+    })
 })
