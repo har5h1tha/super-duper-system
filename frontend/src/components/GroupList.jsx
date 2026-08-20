@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const GroupList = ({ onSelectGroup }) => {
+const GroupList = ({ onSelectGroup ,refresh}) => {
     const [groups, setGroups] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -10,7 +10,7 @@ const GroupList = ({ onSelectGroup }) => {
                 const token = localStorage.getItem("token");
 
                 const response = await fetch(
-                    "http://localhost:5000/api/groups",
+                    "http://localhost:3000/api/groups",
                     {
                         headers: {
                             Authorization: `Bearer ${token}`
@@ -34,7 +34,7 @@ const GroupList = ({ onSelectGroup }) => {
         };
 
         fetchGroups();
-    }, []);
+    }, [refresh]);
 
     if (loading) {
         return <p>Loading groups...</p>;

@@ -17,7 +17,7 @@ const CreateGroup = ({ onGroupCreated }) => {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                "http://localhost:5000/api/groups",
+                "http://localhost:3000/api/groups",
                 {
                     method: "POST",
                     headers: {

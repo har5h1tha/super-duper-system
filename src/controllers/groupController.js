@@ -145,7 +145,7 @@ export const getGroupMessages = asyncHandler(async (req, res) => {
         group: groupId
     })
         .populate("sender", "username")
-        .sort({ createdAt: -1 })
+        .sort({ createdAt: 1 })
         .skip(skip)
         .limit(limit);
 

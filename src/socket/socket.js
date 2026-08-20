@@ -196,8 +196,14 @@ export const initSocket = (server) => {
                     content: content.trim()
                 });
 
+                const populatedMessage = await groupMessage.populate(
+                    "sender",
+                    "username"
+                );
+
                 io.to(groupId).emit("new-group-message", {
-                    message: groupMessage
+                    groupId,
+                    message: populatedMessage
                 });
 
             } catch (error) {
@@ -210,25 +216,34 @@ export const initSocket = (server) => {
         });
 
         socket.on("group-typing", async ({ groupId }) => {
+            console.log("GROUP TYPING EVENT RECEIVED:", groupId);
+            try {
+                const group = await Group.findById(groupId);
+                if (!group) {
+                    return socket.emit("group-message-error", {
+                        message: "Group not found"
+                    });
+                }
 
-            const group = await Group.findById(groupId);
-            if (!group) {
-                return socket.emit("group-message-error", {
-                    message: "Group not found"
-                });
+                const isMember = group.members.some((member) => member.toString() === socket.user.id);
+                if (!isMember) {
+                    return socket.emit("group-message-error", {
+                        message: "user not in group"
+                    });
+                }
+
+                const user = await User.findById(
+                    socket.user.id
+                ).select("username");
+
+                console.log("EMITTING GROUP USER TYPING:", user.username);
+                socket.to(groupId).emit("group-user-typing", {
+                    userId: socket.user.id,
+                    username: user.username
+                })
+            } catch (error) {
+                console.log("Group typing error:", error)
             }
-
-            const isMember = group.members.some((member) => member.toString() === socket.user.id);
-            if (!isMember) {
-                return socket.emit("group-message-error", {
-                    message: "user not in group"
-                });
-            }
-
-            socket.to(groupId).emit("user-typing", {
-                userId: socket.user.id
-            })
-
 
         })
 
@@ -248,28 +263,17 @@ export const initSocket = (server) => {
                 });
             }
 
-            socket.to(groupId).emit("user-stop-typing", {
+            socket.to(groupId).emit("group-user-stop-typing", {
                 userId: socket.user.id
             })
         })
 
         socket.on("leaveGroup", async ({ groupId }) => {
-            const group = await Group.findById(groupId);
-            if (!group) {
-                return socket.emit("group-error", {
-                    message: "Group not found"
-                });
-            }
-
-            const isMember = group.members.some((member) => member.toString() === socket.user.id);
-            if (!isMember) {
-                return socket.emit("group-error", {
-                    message: "user not in group"
-                });
-            }
-
             socket.leave(groupId)
 
+            console.log(
+                `Socket ${socket.id} left group ${groupId}`
+            )
             socket.emit("group-left", {
                 groupId
             });

@@ -16,7 +16,7 @@ const router = express.Router();
 
 router.post('/', authMiddleware, createGroup)
 router.post('/:groupId/members', authMiddleware, addGroupMembers)
-router.post('/:groupId/members/:userId', authMiddleware, deleteGroupMembers)
+router.delete('/:groupId/members/:userId', authMiddleware, deleteGroupMembers)
 router.post('/:groupId/messages', authMiddleware, messageGroupMembers)
 router.get('/:groupId/messages', authMiddleware, getGroupMessages)
 router.get("/:groupId", authMiddleware, getGroupDetails)

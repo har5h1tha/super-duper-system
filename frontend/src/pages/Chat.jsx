@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client"
 import GroupList from "../components/GroupList";
+import GroupChat from "../components/GroupChat";
+import CreateGroup from "../components/CreateGroup";
 
 function Chat({ onLogout }) {
     const [userId, setUserId] = useState(null);
@@ -10,6 +12,8 @@ function Chat({ onLogout }) {
     const [messageInput, setMessageInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState([]);
+    const [selectedGroup, setSelectedGroup] = useState(null);
+    const [groupRefresh, setGroupRefresh] = useState(0);
 
     const socketRef = useRef(null);
     const typingTimeoutRef = useRef(null);
@@ -119,28 +123,38 @@ function Chat({ onLogout }) {
         socketRef.current = socket;
 
         const handleReceiveMessage = (message) => {
+            const selectedId = selectedUserRef.current?._id?.toString();
 
-            if (message.receiver.toString() !== userId) {//check whether it is the receiver , not the sender getting it's own msg
+            const senderId = message.sender?.toString();
+            const receiverId = message.receiver?.toString();
+
+            const isCurrentChat =
+                (senderId === userId && receiverId === selectedId) ||
+                (senderId === selectedId && receiverId === userId);
+
+            if (!isCurrentChat) {
                 return;
             }
 
-            const selectedId = selectedUserRef.current?._id?.toString();
-            const senderId = message.sender?.toString();
+            setMessages((prevMessages) => {
+                if (prevMessages.some((msg) => msg._id === message._id)) {
+                    return prevMessages;
+                }
 
-            if (selectedId === senderId) {
-                setMessages((prevMessages) => [
-                    ...prevMessages,
-                    message
-                ]);
-
-                socket.emit("message-read", {
-                    messageId: message._id
-                });
-            }
-
-            socket.emit("message-delivered", {
-                messageId: message._id
+                return [...prevMessages, message];
             });
+
+            if (receiverId === userId) {
+                if (selectedId === senderId) {
+                    socket.emit("message-read", {
+                        messageId: message._id
+                    });
+                } else {
+                    socket.emit("message-delivered", {
+                        messageId: message._id
+                    });
+                }
+            }
         };
         socket.on("receive-message", handleReceiveMessage);
 
@@ -327,10 +341,19 @@ function Chat({ onLogout }) {
 
                 })}
             </div>
-            
+
+
+            <CreateGroup
+                onGroupCreated={() => {
+                    setGroupRefresh(prev => prev + 1);
+                }}
+            />
+
             <GroupList
+                refresh={groupRefresh}
                 onSelectGroup={(group) => {
-                    console.log("Selected group:", group);
+                    setSelectedGroup(group);
+                    setSelectedUser(null);
                 }}
             />
 
@@ -373,6 +396,12 @@ function Chat({ onLogout }) {
                         )}
                     </div>
                 </div>
+            )}
+
+            {selectedGroup && (
+                <GroupChat
+                    group={selectedGroup}
+                    getSocket={() => socketRef.current} />
             )}
 
             <button onClick={onLogout}>
