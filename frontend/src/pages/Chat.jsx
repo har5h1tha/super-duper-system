@@ -3,6 +3,7 @@ import { io } from "socket.io-client"
 import GroupList from "../components/GroupList";
 import GroupChat from "../components/GroupChat";
 import CreateGroup from "../components/CreateGroup";
+import AddGroupMember from "../components/AddGroupMember";
 
 function Chat({ onLogout }) {
     const [userId, setUserId] = useState(null);
@@ -356,6 +357,16 @@ function Chat({ onLogout }) {
                     setSelectedUser(null);
                 }}
             />
+
+            {selectedGroup && (
+                <AddGroupMember
+                    group={selectedGroup}
+                    users={users}
+                    onMemberAdded={(updatedGroup) => {
+                        setSelectedGroup(updatedGroup);
+                    }}
+                />
+            )}
 
             {selectedUser && (
                 <div>
