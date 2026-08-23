@@ -126,14 +126,15 @@ function Chat({ onLogout }) {
 
         const updateConversation = (message) => {
             const myId = userId?.toString();
-            const senderId =message.sender?._id?.toString() || message.sender?.toString();
+            const senderId = message.sender?._id?.toString() || message.sender?.toString();
             const receiverId = message.receiver?._id?.toString() || message.receiver?.toString();
+            const selectedId = selectedUserRef.current?._id?.toString();
 
-            const otherUser=
+            const otherUser =
                 senderId === myId
-                    ? receiverId
-                    : senderId;
-            
+                    ? message.receiver
+                    : message.sender;
+
             if (!otherUser) {
                 console.error(
                     "Could not determine other user:",
@@ -142,8 +143,8 @@ function Chat({ onLogout }) {
                 return;
             }
             const otherUserId =
-                    otherUser._id?.toString() ||
-                    otherUser.toString();
+                otherUser._id?.toString() ||
+                otherUser.toString();
 
             setConversations((prevConversations) => {
 
@@ -154,9 +155,23 @@ function Chat({ onLogout }) {
 
                 if (existingConversation) {
 
+                    const isCurrentChat =
+                        (senderId === myId && receiverId === selectedId) ||
+                        (senderId === selectedId && receiverId === myId);
+                    
+                    let unreadCount = existingConversation.unreadCount || 0;
+                    if (senderId !== myId && !isCurrentChat) {
+                        unreadCount++;
+                    }
+
+                    if (isCurrentChat) {
+                        unreadCount = 0;
+                    }
+
                     const updatedConversation = {
                         ...existingConversation,
-                        lastMessage: message
+                        lastMessage: message,
+                        unreadCount
                     };
 
                     const remainingConversations = prevConversations.filter(
@@ -172,8 +187,9 @@ function Chat({ onLogout }) {
 
                 return [
                     {
-                        user: otherUserId,
-                        lastMessage: message
+                        user: otherUser,
+                        lastMessage: message,
+                        unreadCount: senderId !== myId ? 1 : 0
                     },
                     ...prevConversations
                 ];
@@ -182,13 +198,14 @@ function Chat({ onLogout }) {
 
         const handleReceiveMessage = (message) => {
             const selectedId = selectedUserRef.current?._id?.toString();
+            const myId = userId?.toString();
 
-            const senderId =message.sender?._id?.toString() || message.sender?.toString();
-            const receiverId =message.receiver?._id?.toString() || message.receiver?.toString();
+            const senderId = message.sender?._id?.toString() || message.sender?.toString();
+            const receiverId = message.receiver?._id?.toString() || message.receiver?.toString();
 
             const isCurrentChat =
-                (senderId === userId && receiverId === selectedId) ||
-                (senderId === selectedId && receiverId === userId);
+                (senderId === myId && receiverId === selectedId) ||
+                (senderId === selectedId && receiverId === myId);
 
             updateConversation(message);
 
@@ -204,7 +221,7 @@ function Chat({ onLogout }) {
                 return [...prevMessages, message];
             });
 
-            if (receiverId === userId) {
+            if (receiverId === myId) {
                 if (selectedId === senderId) {
                     socket.emit("message-read", {
                         messageId: message._id
@@ -230,6 +247,8 @@ function Chat({ onLogout }) {
         socket.on("message-delivered", handleMessageDelivered);
 
         const handleMessageRead = ({ messageId, status }) => {
+                console.log("MESSAGE READ RECEIVED:", messageId, status);
+
             setMessages((prevMessages) =>
                 prevMessages.map((message) =>
                     message._id === messageId
@@ -428,8 +447,8 @@ function Chat({ onLogout }) {
                 })}
 
             </div>
-          
-             <h2>Your Contacts</h2>
+
+            <h2>Your Contacts</h2>
             <div>
                 {conversations.map((conversation) => {
                     const user = conversation.user;
@@ -442,11 +461,27 @@ function Chat({ onLogout }) {
                                 setSelectedUser(user)
                                 selectedUserRef.current = user;
                                 setIsTyping(false)
+
+                                setConversations((prev) =>
+                                    prev.map((conversation) =>
+                                        conversation.user._id === user._id
+                                            ? {
+                                                ...conversation,
+                                                unreadCount: 0
+                                            }
+                                            : conversation
+                                    )
+                                );
                             }}
                         >
 
                             <div>
                                 {user.username}
+                                {conversation.unreadCount > 0 && (
+                                    <span>
+                                        {conversation.unreadCount}
+                                    </span>
+                                )}
                             </div>
 
                             <div>
@@ -492,12 +527,12 @@ function Chat({ onLogout }) {
                         {onlineUsers.includes(selectedUser._id) ? "Online" : "Offline"}
                     </p>
 
-                    {messages.map((message) =>{ 
-                        const senderId = message.sender?._id?.toString() ||message.sender?.toString();
-                        
-                        const isMine = senderId=== userId?.toString();
+                    {messages.map((message) => {
+                        const senderId = message.sender?._id?.toString() || message.sender?.toString();
 
-                       return (<div key={message._id}>
+                        const isMine = senderId === userId?.toString();
+
+                        return (<div key={message._id}>
                             {isMine ? "You" : "Them"}: {message.content}
 
                             {isMine && (
@@ -505,7 +540,7 @@ function Chat({ onLogout }) {
                                     {" "}
                                     {message.status === "sent" && "✓"}
                                     {message.status === "delivered" && "✓✓"}
-                                    {message.status === "read" && "✓✓"}
+                                    {message.status === "read" && "✓✓BLUE"}
                                 </span>
                             )}
                         </div>
