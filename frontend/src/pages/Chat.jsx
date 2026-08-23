@@ -15,6 +15,7 @@ function Chat({ onLogout }) {
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [groupRefresh, setGroupRefresh] = useState(0);
+    const [conversations, setConversations] = useState([]);
 
     const socketRef = useRef(null);
     const typingTimeoutRef = useRef(null);
@@ -123,15 +124,73 @@ function Chat({ onLogout }) {
         });
         socketRef.current = socket;
 
+        const updateConversation = (message) => {
+            const myId = userId?.toString();
+            const senderId =message.sender?._id?.toString() || message.sender?.toString();
+            const receiverId = message.receiver?._id?.toString() || message.receiver?.toString();
+
+            const otherUser=
+                senderId === myId
+                    ? receiverId
+                    : senderId;
+            
+            if (!otherUser) {
+                console.error(
+                    "Could not determine other user:",
+                    message
+                );
+                return;
+            }
+            const otherUserId =
+                    otherUser._id?.toString() ||
+                    otherUser.toString();
+
+            setConversations((prevConversations) => {
+
+                const existingConversation = prevConversations.find(
+                    (conversation) =>
+                        conversation.user._id.toString() === otherUserId
+                );
+
+                if (existingConversation) {
+
+                    const updatedConversation = {
+                        ...existingConversation,
+                        lastMessage: message
+                    };
+
+                    const remainingConversations = prevConversations.filter(
+                        (conversation) =>
+                            conversation.user._id.toString() !== otherUserId
+                    );
+
+                    return [
+                        updatedConversation,
+                        ...remainingConversations
+                    ];
+                }
+
+                return [
+                    {
+                        user: otherUserId,
+                        lastMessage: message
+                    },
+                    ...prevConversations
+                ];
+            });
+        };
+
         const handleReceiveMessage = (message) => {
             const selectedId = selectedUserRef.current?._id?.toString();
 
-            const senderId = message.sender?.toString();
-            const receiverId = message.receiver?.toString();
+            const senderId =message.sender?._id?.toString() || message.sender?.toString();
+            const receiverId =message.receiver?._id?.toString() || message.receiver?.toString();
 
             const isCurrentChat =
                 (senderId === userId && receiverId === selectedId) ||
                 (senderId === selectedId && receiverId === userId);
+
+            updateConversation(message);
 
             if (!isCurrentChat) {
                 return;
@@ -247,6 +306,35 @@ function Chat({ onLogout }) {
         };
     }, [selectedUser]);
 
+    //get conversations
+    useEffect(() => {
+        const fetchConversations = async () => {
+            try {
+                const token = localStorage.getItem("token");
+
+                const response = await fetch("http://localhost:3000/api/messages/conversations",
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                )
+                const data = await response.json();
+                if (!response.ok) {
+                    console.error(data);
+                    return
+                }
+                console.log("CONVERSATIONS RESPONSE:", data);
+                setConversations(data.conversations);
+
+            } catch (error) {
+                console.log("Failed to fetch conversations", error)
+            }
+        }
+
+        fetchConversations()
+    }, [])
+
 
     const sendMessage = async () => {
         if (!messageInput.trim() || !selectedUser) {
@@ -333,8 +421,37 @@ function Chat({ onLogout }) {
                                 setIsTyping(false)
                             }}
                         >
-
                             {user.username}
+                            <span>{isOnline ? "🟢 Online" : "⚫ Offline"}</span>
+                        </div>
+                    )
+                })}
+
+            </div>
+          
+             <h2>Your Contacts</h2>
+            <div>
+                {conversations.map((conversation) => {
+                    const user = conversation.user;
+                    const isOnline = onlineUsers.includes(user._id);
+                    return (
+                        <div key={user._id}
+                            onClick={() => {
+                                clearTimeout(typingTimeoutRef.current);
+
+                                setSelectedUser(user)
+                                selectedUserRef.current = user;
+                                setIsTyping(false)
+                            }}
+                        >
+
+                            <div>
+                                {user.username}
+                            </div>
+
+                            <div>
+                                {conversation.lastMessage?.content || "NO messages yet"}
+                            </div>
                             <span>{isOnline ? "🟢 Online" : "⚫ Offline"}</span>
 
                         </div>
@@ -375,11 +492,15 @@ function Chat({ onLogout }) {
                         {onlineUsers.includes(selectedUser._id) ? "Online" : "Offline"}
                     </p>
 
-                    {messages.map((message) => (
-                        <div key={message._id}>
-                            {message.sender === userId ? "You" : "Them"}: {message.content}
+                    {messages.map((message) =>{ 
+                        const senderId = message.sender?._id?.toString() ||message.sender?.toString();
+                        
+                        const isMine = senderId=== userId?.toString();
 
-                            {message.sender === userId && (
+                       return (<div key={message._id}>
+                            {isMine ? "You" : "Them"}: {message.content}
+
+                            {isMine && (
                                 <span>
                                     {" "}
                                     {message.status === "sent" && "✓"}
@@ -388,7 +509,8 @@ function Chat({ onLogout }) {
                                 </span>
                             )}
                         </div>
-                    ))}
+                        )
+                    })}
 
                     <div>
                         <input

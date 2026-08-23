@@ -2,6 +2,7 @@ import Message from "../models/message.model.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { getIO, userSocketMap } from "../socket/socket.js";
+import mongoose from "mongoose";
 
 export const sendMessage = asyncHandler(async (req, res) => {
 
@@ -17,6 +18,16 @@ export const sendMessage = asyncHandler(async (req, res) => {
         receiver,
         content
     });
+    const populatedMessage = await newMessage.populate([
+    {
+        path: "sender",
+        select: "username"
+    },
+    {
+        path: "receiver",
+        select: "username"
+    }
+]);
 
     const io = getIO();
 
@@ -24,14 +35,14 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
     if (receiverSockets) {
         receiverSockets.forEach((socketId) => {
-            io.to(socketId).emit("receive-message", newMessage);
+            io.to(socketId).emit("receive-message", populatedMessage);
         });
     }
     const senderSockets= userSocketMap[sender];
 
     if (senderSockets) {
         senderSockets.forEach((socketId) => {
-            io.to(socketId).emit("receive-message", newMessage);
+            io.to(socketId).emit("receive-message", populatedMessage);
         });
     }
 
@@ -64,4 +75,42 @@ export const getMessages = asyncHandler(async (req, res) => {
     console.log("Other ID:", req.params.userId);
 
     return res.status(200).json(messages);
+})
+
+export const getConversations =asyncHandler(async (req,res) =>{
+    const userId = req.user.id;
+
+    const messages = await Message.find({
+        $or:[
+            {sender : userId},
+            { receiver : userId}
+        ]
+    })
+        .sort({createdAt:-1})
+        .populate("sender","username")
+        .populate("receiver","username");
+
+    const conversations =[];
+    const seenUsers = new Set();
+
+    for(const message of messages){
+        const otherUser = 
+            message.sender._id.toString() === userId 
+            ? message.receiver : message.sender;
+
+        const otherUserId = otherUser._id.toString();
+
+        if(seenUsers.has(otherUserId)){
+            continue;
+        }
+        seenUsers.add(otherUserId);
+
+        conversations.push({
+            user:otherUser,
+            lastMessage : message
+        })
+    }
+    res.status(200).json({
+        conversations
+    });
 })
