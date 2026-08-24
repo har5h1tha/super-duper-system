@@ -158,7 +158,7 @@ function Chat({ onLogout }) {
                     const isCurrentChat =
                         (senderId === myId && receiverId === selectedId) ||
                         (senderId === selectedId && receiverId === myId);
-                    
+
                     let unreadCount = existingConversation.unreadCount || 0;
                     if (senderId !== myId && !isCurrentChat) {
                         unreadCount++;
@@ -247,7 +247,7 @@ function Chat({ onLogout }) {
         socket.on("message-delivered", handleMessageDelivered);
 
         const handleMessageRead = ({ messageId, status }) => {
-                console.log("MESSAGE READ RECEIVED:", messageId, status);
+            console.log("MESSAGE READ RECEIVED:", messageId, status);
 
             setMessages((prevMessages) =>
                 prevMessages.map((message) =>
@@ -258,6 +258,20 @@ function Chat({ onLogout }) {
             );
         };
         socket.on("message-read", handleMessageRead);
+
+        const handleMessagesRead = ({ messageIds }) => {
+            console.log("OLD MESSAGES READ:", messageIds);
+
+            setMessages((prevMessages) =>
+                prevMessages.map((message) =>
+                    messageIds.includes(message._id)
+                        ? { ...message, status: "read" }
+                        : message
+                )
+            );
+        };
+
+        socket.on("messages-read", handleMessagesRead);
 
         const handleOnlineUsers = (users) => {
             setOnlineUsers(users);
@@ -292,6 +306,7 @@ function Chat({ onLogout }) {
             socket.off("online-users", handleOnlineUsers);
             socket.off("user-online", handleUserOnline);
             socket.off("user-offline", handleUserOffline);
+            socket.off("messages-read", handleMessagesRead);
 
 
             socket.disconnect();

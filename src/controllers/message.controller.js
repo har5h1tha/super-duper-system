@@ -58,6 +58,36 @@ export const getMessages = asyncHandler(async (req, res) => {
 
     const myId = req.user.id;
     const otherUserId = req.params.userId;
+    
+    const messagesToRead = await Message.find({
+        sender: otherUserId,
+        receiver: myId,
+        status: { $in: ["sent", "delivered"] }
+    }).select("_id");
+
+    await Message.updateMany(
+        {
+            sender: otherUserId,
+            receiver: myId,
+            status: { $in: ["sent", "delivered"] }
+        },
+        {
+            $set: { status: "read" }
+        }
+    );
+    
+    const io = getIO();
+    const senderSockets = userSocketMap[otherUserId];
+
+    if (senderSockets && messagesToRead.length > 0) {
+        senderSockets.forEach((socketId) => {
+            io.to(socketId).emit("messages-read", {
+                messageIds: messagesToRead.map(
+                    message => message._id.toString()
+                )
+            });
+        });
+    }
 
     const messages = await Message.find({
         $or: [

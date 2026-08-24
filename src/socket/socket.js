@@ -88,7 +88,7 @@ export const initSocket = (server) => {
                 {
                     _id: messageId,
                     receiver: socket.user.id,
-                    status: "delivered"
+                    status: {$in:["sent","delivered"]}
                 },
                 { status: "read" },
                 { returnDocument: "after" }
