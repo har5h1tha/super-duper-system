@@ -89,6 +89,11 @@ export const getMessages = asyncHandler(async (req, res) => {
         });
     }
 
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 30;
+
+    const  skip = (page-1)*limit;
+
     const messages = await Message.find({
         $or: [
             {
@@ -100,11 +105,19 @@ export const getMessages = asyncHandler(async (req, res) => {
                 receiver: myId,
             },
         ],
-    }).sort({ createdAt: 1 });
+    }).sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+
     console.log("My ID:", req.user.id);
     console.log("Other ID:", req.params.userId);
 
-    return res.status(200).json(messages);
+    return res.status(200).json({
+        messages,
+        page,
+        hasMore : messages.length === limit
+    }
+    );
 })
 
 export const getConversations =asyncHandler(async (req,res) =>{

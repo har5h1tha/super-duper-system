@@ -17,6 +17,10 @@ function Chat({ onLogout }) {
     const [groupRefresh, setGroupRefresh] = useState(0);
     const [conversations, setConversations] = useState([]);
 
+    const [messagePage, setMessagePage] = useState(1);
+    const [hasMoreMessages, setHasMoreMessages] = useState(true);
+    const [loadingMessages, setLoadingMessages] = useState(false);
+
     const socketRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     const selectedUserRef = useRef(null);
@@ -80,7 +84,7 @@ function Chat({ onLogout }) {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `http://localhost:3000/api/messages/${selectedUser._id}`,
+                `http://localhost:3000/api/messages/${selectedUser._id}?page=${messagePage}&limit=30`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -95,11 +99,19 @@ function Chat({ onLogout }) {
                 return;
             }
 
-            setMessages(data);
+            if(messagePage === 1){
+                setMessages(data.messages)
+            }else{
+                setMessages(prev =>[
+                    ...data.messages,
+                    ...prev
+                ])
+            }
+            setHasMoreMessages(data.hasMore);
 
             const socket = socketRef.current;
             if (socket) {
-                data.forEach((message) => {
+                data.messages.forEach((message) => {
                     if (message.receiver.toString() === userId &&
                         message.status === "delivered") {
                         socket.emit("message-read", {
@@ -111,7 +123,7 @@ function Chat({ onLogout }) {
         };
 
         getMessages();
-    }, [selectedUser, userId]);
+    }, [selectedUser, userId,messagePage]);
 
     //SOCKET connection
     useEffect(() => {
@@ -476,6 +488,10 @@ function Chat({ onLogout }) {
                                 setSelectedUser(user)
                                 selectedUserRef.current = user;
                                 setIsTyping(false)
+                                
+                                setMessagePage(1);
+                                setHasMoreMessages(true);
+                                setMessages([]);
 
                                 setConversations((prev) =>
                                     prev.map((conversation) =>
