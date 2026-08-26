@@ -3,6 +3,7 @@ import GroupMessage from "../models/groupMessage.model.js";
 import User from "../models/user.model.js"
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import mongoose from "mongoose";
 
 export const createGroup = asyncHandler(async (req, res) => {
 
@@ -14,8 +15,17 @@ export const createGroup = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid Group name")
     }
 
+    const existingGroup = await Group.findOne({
+        name: groupName.trim(),
+        createdBy: creatorId
+    });
+
+    if (existingGroup) {
+        throw new ApiError(409, "You already have a group with this name");
+    }
+
     const group = await Group.create({
-        name: groupName,
+        name: groupName.trim(),
         createdBy: creatorId,
         members: [creatorId],
         admins: [creatorId]
@@ -31,6 +41,14 @@ export const addGroupMembers = asyncHandler(async (req, res) => {
     const adminId = req.user.id;
     const { userId } = req.body;
     const groupId = req.params.groupId;
+
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+        throw new ApiError(400, "Invalid group ID");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw new ApiError(400, "Invalid user ID");
+}
 
     const group = await Group.findById(groupId)
     if (!group) {
@@ -65,6 +83,14 @@ export const deleteGroupMembers = asyncHandler(async (req, res) => {
     const groupId = req.params.groupId
     const delId = req.params.userId;
 
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+        throw new ApiError(400, "Invalid group ID");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(delId)) {
+        throw new ApiError(400, "Invalid user ID");
+    }
+
     const group = await Group.findById(groupId)
     if (!group) {
         throw new ApiError(404, "Invalid group")
@@ -84,6 +110,9 @@ export const deleteGroupMembers = asyncHandler(async (req, res) => {
     group.members = group.members.filter(
         member => member.toString() !== delId
     );
+    group.admins = group.admins.filter(
+        admin => admin.toString() !== delId
+    );
     await group.save();
 
     res.status(200).json({
@@ -99,6 +128,9 @@ export const messageGroupMembers = asyncHandler(async (req, res) => {
     const sender = req.user.id;
     const { content } = req.body;
 
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+        throw new ApiError(400, "Invalid group ID");
+    }
     const group = await Group.findById(groupId);
     if (!group) {
         throw new ApiError(404, "Invalid Group")
@@ -127,6 +159,10 @@ export const getGroupMessages = asyncHandler(async (req, res) => {
     const user = req.user.id;
     const { groupId } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+        throw new ApiError(400, "Invalid group ID");
+    }
+
     const group = await Group.findById(groupId)
     if (!group) {
         throw new ApiError(404, "Invalid group")
@@ -137,8 +173,12 @@ export const getGroupMessages = asyncHandler(async (req, res) => {
         throw new ApiError(403, "Invalid user")
     }
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+
+    const limit = Math.min(
+        Math.max(parseInt(req.query.limit) || 20, 1),
+        100
+    );
     const skip = (page - 1) * limit;
 
     const messages = await GroupMessage.find({
@@ -158,6 +198,10 @@ export const getGroupMessages = asyncHandler(async (req, res) => {
 export const getGroupDetails = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { groupId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+        throw new ApiError(400, "Invalid group ID");
+    }
 
     const group = await Group.findOne({
         _id: groupId,
@@ -188,3 +232,47 @@ export const getMyGroups= asyncHandler(async ( req,res)=>{
         groups
     })
 })
+
+export const leaveGroup = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { groupId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+        throw new ApiError(400, "Invalid group ID");
+    }
+    const group = await Group.findById(groupId);
+
+    if (!group) {
+        throw new ApiError(404, "Group not found");
+    }
+
+    const isMember = group.members.some(
+        member => member.toString() === userId
+    );
+
+    if (!isMember) {
+        throw new ApiError(400, "You are not a member of this group");
+    }
+
+    const isAdmin = group.admins.some(
+        admin => admin.toString() === userId
+    );
+
+    if (isAdmin) {
+        throw new ApiError(
+            400,
+            "Admin cannot leave the group currently"
+        );
+    }
+
+    group.members = group.members.filter(
+        member => member.toString() !== userId
+    );
+
+    await group.save();
+
+    res.status(200).json({
+        message: "Successfully left the group",
+        group
+    });
+});

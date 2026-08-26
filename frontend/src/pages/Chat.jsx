@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client"
 import GroupList from "../components/GroupList";
 import GroupChat from "../components/GroupChat";
+import GroupDetails from "../components/GroupDetails";
 import CreateGroup from "../components/CreateGroup";
 import AddGroupMember from "../components/AddGroupMember";
 
@@ -104,14 +105,7 @@ function Chat({ onLogout }) {
                 console.error(data);
                 return;
             }
-            console.log(
-    "PAGE:",
-    messagePage,
-    "FIRST:",
-    data.messages[0]?.content,
-    "LAST:",
-    data.messages[data.messages.length - 1]?.content
-);
+           
 
             if(messagePage === 1){
                 setMessages(data.messages)
@@ -497,6 +491,47 @@ function Chat({ onLogout }) {
         }, 1000);
     };
 
+    const handleLeaveGroup = async () => {
+        if (!selectedGroup) return;
+
+        try {
+            const token = localStorage.getItem("token");
+
+            const response = await fetch(
+                `http://localhost:3000/api/groups/${selectedGroup._id}/leave`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error(data);
+                return;
+            }
+
+            console.log("LEFT GROUP:", data.group);
+
+            const socket = socketRef.current;
+
+            if (socket) {
+                socket.emit("leaveGroup", {
+                    groupId: selectedGroup._id
+                });
+            }
+            setSelectedGroup(null);
+
+            setGroupRefresh(prev => prev + 1);
+
+        } catch (error) {
+            console.error("Failed to leave group:", error);
+        }
+    };
+
     return (
         <div>
             <h1>CollabHub Chat</h1>
@@ -593,6 +628,15 @@ function Chat({ onLogout }) {
                     setSelectedGroup(group);
                     setSelectedUser(null);
                 }}
+            />
+
+            <GroupDetails
+                group={selectedGroup}
+                userId={userId}
+                onGroupUpdated={(updatedGroup) => {
+                    setSelectedGroup(updatedGroup);
+                }}
+                onLeaveGroup={handleLeaveGroup}
             />
 
             {selectedGroup && (
