@@ -109,6 +109,8 @@ export const getMessages = asyncHandler(async (req, res) => {
       .skip(skip)
       .limit(limit)
 
+    messages.reverse();
+
     console.log("My ID:", req.user.id);
     console.log("Other ID:", req.params.userId);
 

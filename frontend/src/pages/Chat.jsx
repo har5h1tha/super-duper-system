@@ -19,11 +19,13 @@ function Chat({ onLogout }) {
 
     const [messagePage, setMessagePage] = useState(1);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
-    const [loadingMessages, setLoadingMessages] = useState(false);
-
+    
     const socketRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     const selectedUserRef = useRef(null);
+    const messagesContainerRef = useRef(null);
+    const loadingMessagesRef = useRef(false);
+    const previousScrollHeightRef = useRef(null);
 
     //getUsers
     useEffect(() => {
@@ -81,6 +83,10 @@ function Chat({ onLogout }) {
         if (!selectedUser) return;
 
         const getMessages = async () => {
+            if (loadingMessagesRef.current) return;
+
+            loadingMessagesRef.current = true;
+        try{
             const token = localStorage.getItem("token");
 
             const response = await fetch(
@@ -98,14 +104,34 @@ function Chat({ onLogout }) {
                 console.error(data);
                 return;
             }
+            console.log(
+    "PAGE:",
+    messagePage,
+    "FIRST:",
+    data.messages[0]?.content,
+    "LAST:",
+    data.messages[data.messages.length - 1]?.content
+);
 
             if(messagePage === 1){
                 setMessages(data.messages)
             }else{
-                setMessages(prev =>[
-                    ...data.messages,
-                    ...prev
-                ])
+                setMessages(prev => {
+                    const existingIds = new Set(prev.map(message => message._id));
+
+                    const newMessages = data.messages.filter(
+                        message => !existingIds.has(message._id)
+                    );
+
+                    const result = [...newMessages, ...prev];
+
+                    console.log(
+                        "FINAL ORDER:",
+                        result.map(m => m.content)
+                    );
+
+                    return result;
+                });
             }
             setHasMoreMessages(data.hasMore);
 
@@ -120,7 +146,10 @@ function Chat({ onLogout }) {
                     }
                 })
             }
-        };
+        }finally{
+                loadingMessagesRef.current = false;
+        }
+};
 
         getMessages();
     }, [selectedUser, userId,messagePage]);
@@ -381,6 +410,31 @@ function Chat({ onLogout }) {
         fetchConversations()
     }, [])
 
+    useEffect(() => {
+    const container = messagesContainerRef.current;
+
+    if (!container) return;
+
+    if (
+        messagePage === 1 &&
+        previousScrollHeightRef.current === null
+    ) {
+        container.scrollTop = container.scrollHeight;
+        return;
+    }
+
+    if (previousScrollHeightRef.current !== null) {
+        const newScrollHeight = container.scrollHeight;
+
+        const heightDifference =
+            newScrollHeight - previousScrollHeightRef.current;
+
+        container.scrollTop = heightDifference;
+
+        previousScrollHeightRef.current = null;
+    }
+}, [messages]);
+
 
     const sendMessage = async () => {
         if (!messageInput.trim() || !selectedUser) {
@@ -558,6 +612,25 @@ function Chat({ onLogout }) {
                         {onlineUsers.includes(selectedUser._id) ? "Online" : "Offline"}
                     </p>
 
+                    <div
+                        ref={messagesContainerRef}
+                        style={{
+                            height: "400px",
+                            overflowY: "auto"
+                        }}
+                        onScroll={(e) => {
+                            if (
+                                e.currentTarget.scrollTop === 0 &&
+                                hasMoreMessages &&
+                                !loadingMessagesRef.current
+                            ) {
+                                previousScrollHeightRef.current =
+                                    e.currentTarget.scrollHeight;
+
+                                setMessagePage(prev => prev + 1);
+                            }
+                        }}
+                    >
                     {messages.map((message) => {
                         const senderId = message.sender?._id?.toString() || message.sender?.toString();
 
@@ -577,7 +650,7 @@ function Chat({ onLogout }) {
                         </div>
                         )
                     })}
-
+                    </div>
                     <div>
                         <input
                             type="text"
