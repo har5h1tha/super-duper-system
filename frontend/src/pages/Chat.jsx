@@ -16,7 +16,7 @@ function Chat({ onLogout }) {
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [groupRefresh, setGroupRefresh] = useState(0);
-    const [conversations, setConversations] = useState([]);4
+    const [conversations, setConversations] = useState([]);
 
     const [messagePage, setMessagePage] = useState(1);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -71,7 +71,6 @@ function Chat({ onLogout }) {
                 return;
             }
 
-            console.log("USERS:", data);
             setUsers(data);
         };
 
@@ -118,11 +117,6 @@ function Chat({ onLogout }) {
                     );
 
                     const result = [...newMessages, ...prev];
-
-                    console.log(
-                        "FINAL ORDER:",
-                        result.map(m => m.content)
-                    );
 
                     return result;
                 });
@@ -282,7 +276,6 @@ function Chat({ onLogout }) {
         socket.on("message-delivered", handleMessageDelivered);
 
         const handleMessageRead = ({ messageId, status }) => {
-            console.log("MESSAGE READ RECEIVED:", messageId, status);
 
             setMessages((prevMessages) =>
                 prevMessages.map((message) =>
@@ -295,7 +288,6 @@ function Chat({ onLogout }) {
         socket.on("message-read", handleMessageRead);
 
         const handleMessagesRead = ({ messageIds }) => {
-            console.log("OLD MESSAGES READ:", messageIds);
 
             setMessages((prevMessages) =>
                 prevMessages.map((message) =>
@@ -393,7 +385,6 @@ function Chat({ onLogout }) {
                     console.error(data);
                     return
                 }
-                console.log("CONVERSATIONS RESPONSE:", data);
                 setConversations(data.conversations);
 
             } catch (error) {
@@ -404,19 +395,11 @@ function Chat({ onLogout }) {
         fetchConversations()
     }, [])
 
-    useEffect(() => {
+useEffect(() => {
     const container = messagesContainerRef.current;
-
     if (!container) return;
 
-    if (
-        messagePage === 1 &&
-        previousScrollHeightRef.current === null
-    ) {
-        container.scrollTop = container.scrollHeight;
-        return;
-    }
-
+    // Loading older messages
     if (previousScrollHeightRef.current !== null) {
         const newScrollHeight = container.scrollHeight;
 
@@ -426,7 +409,12 @@ function Chat({ onLogout }) {
         container.scrollTop = heightDifference;
 
         previousScrollHeightRef.current = null;
+        return;
     }
+
+    // Initial load / new message
+    container.scrollTop = container.scrollHeight;
+
 }, [messages]);
 
 
@@ -467,14 +455,9 @@ function Chat({ onLogout }) {
 
         setMessageInput(value);
 
-        console.log("TYPING INPUT");
-
         if (!selectedUser || !socketRef.current) {
-            console.log("NO USER OR SOCKET");
             return;
         }
-
-        console.log("EMITTING TYPING TO:", selectedUser._id);
 
         socketRef.current.emit("typing", {
             receiverId: selectedUser._id
@@ -483,7 +466,6 @@ function Chat({ onLogout }) {
         clearTimeout(typingTimeoutRef.current);
 
         typingTimeoutRef.current = setTimeout(() => {
-            console.log("EMITTING STOP TYPING");
 
             socketRef.current.emit("stop-typing", {
                 receiverId: selectedUser._id
@@ -513,8 +495,6 @@ function Chat({ onLogout }) {
                 console.error(data);
                 return;
             }
-
-            console.log("LEFT GROUP:", data.group);
             
             setSelectedGroup(null);
 
