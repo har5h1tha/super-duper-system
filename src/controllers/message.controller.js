@@ -9,14 +9,17 @@ export const sendMessage = asyncHandler(async (req, res) => {
     const sender = req.user.id;
     const { receiver, content } = req.body;
 
-    if (!receiver || !content) {
+    if (!receiver || !content?.trim()) {
         throw new ApiError(400, "Receiver and message are required");
+    }
+    if(!mongoose.Types.ObjectId.isValid(receiver)){
+        throw new ApiError(400, "Invalid receiver ID");
     }
 
     const newMessage = await Message.create({
         sender,
         receiver,
-        content
+        content : content.trim()
     });
     const populatedMessage = await newMessage.populate([
     {
@@ -58,6 +61,10 @@ export const getMessages = asyncHandler(async (req, res) => {
 
     const myId = req.user.id;
     const otherUserId = req.params.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(otherUserId)) {
+        throw new ApiError(400, "Invalid user ID");
+    }
     
     const messagesToRead = await Message.find({
         sender: otherUserId,
@@ -89,8 +96,11 @@ export const getMessages = asyncHandler(async (req, res) => {
         });
     }
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 30;
+    const page = Math.max(parseInt(req.query.page) || 1,1);
+    const limit =Math.min(
+        Math.max(parseInt(req.query.limit) || 30,1),
+        100
+    );
 
     const  skip = (page-1)*limit;
 
@@ -110,10 +120,7 @@ export const getMessages = asyncHandler(async (req, res) => {
       .limit(limit)
 
     messages.reverse();
-
-    console.log("My ID:", req.user.id);
-    console.log("Other ID:", req.params.userId);
-
+    
     return res.status(200).json({
         messages,
         page,
