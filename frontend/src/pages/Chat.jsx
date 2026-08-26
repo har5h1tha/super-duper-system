@@ -16,7 +16,7 @@ function Chat({ onLogout }) {
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [groupRefresh, setGroupRefresh] = useState(0);
-    const [conversations, setConversations] = useState([]);
+    const [conversations, setConversations] = useState([]);4
 
     const [messagePage, setMessagePage] = useState(1);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -515,14 +515,7 @@ function Chat({ onLogout }) {
             }
 
             console.log("LEFT GROUP:", data.group);
-
-            const socket = socketRef.current;
-
-            if (socket) {
-                socket.emit("leaveGroup", {
-                    groupId: selectedGroup._id
-                });
-            }
+            
             setSelectedGroup(null);
 
             setGroupRefresh(prev => prev + 1);
@@ -531,6 +524,33 @@ function Chat({ onLogout }) {
             console.error("Failed to leave group:", error);
         }
     };
+    const handleSelectGroup = async (group) => {
+    try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+            `http://localhost:3000/api/groups/${group._id}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error(data);
+            return;
+        }
+
+        setSelectedGroup(data.group);
+        setSelectedUser(null);
+
+    } catch (error) {
+        console.error("Failed to load group details:", error);
+    }
+};
 
     return (
         <div>
@@ -624,12 +644,9 @@ function Chat({ onLogout }) {
 
             <GroupList
                 refresh={groupRefresh}
-                onSelectGroup={(group) => {
-                    setSelectedGroup(group);
-                    setSelectedUser(null);
-                }}
+                onSelectGroup={handleSelectGroup}
             />
-
+        {selectedGroup &&(
             <GroupDetails
                 group={selectedGroup}
                 userId={userId}
@@ -638,7 +655,7 @@ function Chat({ onLogout }) {
                 }}
                 onLeaveGroup={handleLeaveGroup}
             />
-
+        )}
             {selectedGroup && (
                 <AddGroupMember
                     group={selectedGroup}

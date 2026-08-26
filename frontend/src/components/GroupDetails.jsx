@@ -1,49 +1,11 @@
-import { useEffect, useState } from "react";
-
 const GroupDetails = ({
     group,
     userId,
     onGroupUpdated,
     onLeaveGroup
 }) => {
-    const [groupDetails, setGroupDetails] = useState(null);
-    const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (!group?._id) return;
-        const fetchGroupDetails = async () => {
-            setLoading(true);
-
-            try {
-                const token = localStorage.getItem("token");
-
-                const response = await fetch(
-                    `http://localhost:3000/api/groups/${group._id}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${token}`
-                        }
-                    }
-                );
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    console.error(data);
-                    return;
-                }
-
-                setGroupDetails(data.group);
-            } catch (error) {
-                console.error("Failed to fetch group details:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchGroupDetails();
-    }, [group?._id]);
-
-    const isAdmin = groupDetails?.admins?.some(
+    const isAdmin = group.admins?.some(
         admin => admin._id.toString() === userId.toString()
     );
 
@@ -67,40 +29,31 @@ const GroupDetails = ({
                 console.error(data);
                 return;
             }
+            onGroupUpdated(data.group);
 
-            setGroupDetails(data.group);
-
-            if (onGroupUpdated) {
-                onGroupUpdated(data.group);
-            }
         } catch (error) {
             console.error("Failed to remove member:", error);
         }
     };
 
-    if (loading) {
-        return <p>Loading group details...</p>;
-    }
-
-    if (!groupDetails) {
-        return <p>Unable to load group details.</p>;
-    }
-
     return (
         <div>
-            <h3>{groupDetails.name}</h3>
+            <h3>{group.name}</h3>
 
             <p>
-                Created by:{" "}
-                {groupDetails.createdBy?.username}
+                Created by: {group.createdBy?.username}
             </p>
 
-            <h4>Members ({groupDetails.members.length})</h4>
+            <h4>
+                Members ({group.members.length})
+            </h4>
 
-            {groupDetails.members.map(member => {
-                const memberIsAdmin = groupDetails.admins.some(
+            {group.members.map(member => {
+
+                const memberIsAdmin = group.admins.some(
                     admin =>
-                        admin._id.toString() === member._id.toString()
+                        admin._id.toString() ===
+                        member._id.toString()
                 );
 
                 return (

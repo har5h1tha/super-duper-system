@@ -71,9 +71,14 @@ export const addGroupMembers = asyncHandler(async (req, res) => {
     group.members.push(userId);
     await group.save();
 
+    const updatedGroup = await Group.findById(groupId)
+    .populate("members", "username")
+    .populate("admins", "username")
+    .populate("createdBy", "username");
+
     res.status(200).json({
         message: "SUCCESS in ADDING MEMBER",
-        group
+        group:updatedGroup
     })
 
 })
@@ -115,9 +120,14 @@ export const deleteGroupMembers = asyncHandler(async (req, res) => {
     );
     await group.save();
 
+    const updatedGroup = await Group.findById(groupId)
+    .populate("members", "username")
+    .populate("admins", "username")
+    .populate("createdBy", "username");
+
     res.status(200).json({
         message: "DELETE success",
-        group
+        group:updatedGroup
     })
 
 
