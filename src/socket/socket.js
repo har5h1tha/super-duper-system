@@ -1,7 +1,6 @@
 import { Server } from "socket.io";
 import Message from "../models/message.model.js";
 import socketAuth from "../middleware/socketAuth.middleware.js";
-import ApiError from "../utils/ApiError.js";
 import User from "../models/user.model.js";
 import Group from "../models/group.model.js";
 import GroupMessage from "../models/groupMessage.model.js";
@@ -60,6 +59,7 @@ export const initSocket = (server) => {
         });
 
         socket.on("message-delivered", async ({ messageId }) => {
+           try{
             const message = await Message.findOneAndUpdate(
                 {
                     _id: messageId,
@@ -81,9 +81,17 @@ export const initSocket = (server) => {
                     })
                 })
             }
+        }catch(error){
+               console.error("Message delivery error:", error);
+
+               socket.emit("message-error", {
+                   message: "Failed to update message delivery status"
+               });
+        }
         })
 
         socket.on("message-read", async ({ messageId }) => {
+            try{
             const message = await Message.findOneAndUpdate(
                 {
                     _id: messageId,
@@ -105,6 +113,13 @@ export const initSocket = (server) => {
                     });
                 });
             }
+        }catch(error){
+            console.error("Message read error:", error);
+
+        socket.emit("message-error", {
+            message: "Failed to update message read status"
+        });
+        }
         });
 
         socket.on("disconnect", () => {
@@ -216,7 +231,7 @@ export const initSocket = (server) => {
         });
 
         socket.on("group-typing", async ({ groupId }) => {
-            console.log("GROUP TYPING EVENT RECEIVED:", groupId);
+
             try {
                 const group = await Group.findById(groupId);
                 if (!group) {
@@ -248,7 +263,7 @@ export const initSocket = (server) => {
         })
 
         socket.on("group-stop-typing", async ({ groupId }) => {
-
+         try{
             const group = await Group.findById(groupId);
             if (!group) {
                 return socket.emit("group-message-error", {
@@ -266,9 +281,16 @@ export const initSocket = (server) => {
             socket.to(groupId).emit("group-user-stop-typing", {
                 userId: socket.user.id
             })
+        }catch(error){
+             console.error("Group stop typing error:", error);
+
+             socket.emit("group-message-error", {
+                 message: "Failed to stop group typing"
+             });
+        }
         })
 
-        socket.on("leaveGroup", async ({ groupId }) => {
+        socket.on("leaveGroup",  ({ groupId }) => {
             socket.leave(groupId)
 
             console.log(

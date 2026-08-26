@@ -1,4 +1,5 @@
 import Message from "../models/message.model.js";
+import User from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { getIO, userSocketMap } from "../socket/socket.js";
@@ -165,10 +166,16 @@ export const getConversations = asyncHandler(async (req, res) => {
             continue;
         }
         seenUsers.add(otherUserId);
+        const unreadCount = await Message.countDocuments({
+            sender: otherUserId,
+            receiver: userId,
+            status: { $ne: "read" }
+        });
 
         conversations.push({
             user: otherUser,
-            lastMessage: message
+            lastMessage: message,
+            unreadCount
         })
     }
     res.status(200).json({

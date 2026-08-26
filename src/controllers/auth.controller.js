@@ -8,14 +8,12 @@ export const register=asyncHandler (async (req,res)=>{
     
         const {username,email,password}=req.body;
         if(!username || !email || !password){
-            return res.status(400).json({
-                message:"All fields are required"
-            })
+            throw new ApiError(400, "All fields are required");
         }
 
         const isExist = await User.findOne({email});
         if(isExist){
-            throw new ApiError(404,"User already exists");
+            throw new ApiError(409,"User already exists");
         }
 
         const hashedPswd= await bcrypt.hash(password,10);
@@ -40,12 +38,12 @@ export const login=asyncHandler ( async (req,res)=>{
 
         const user = await User.findOne({email});
         if(!user){
-            throw new ApiError(409,"invalid user")
+            throw new ApiError(401, "Invalid email or password");
         }
 
         const isMatch = await bcrypt.compare(password,user.password);
         if(!isMatch){
-            throw new ApiError(409,"invalid user")
+            throw new ApiError(401, "Invalid email or password");
         }
         
         const token = jwt.sign(
