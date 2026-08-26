@@ -12,25 +12,34 @@ export const sendMessage = asyncHandler(async (req, res) => {
     if (!receiver || !content?.trim()) {
         throw new ApiError(400, "Receiver and message are required");
     }
-    if(!mongoose.Types.ObjectId.isValid(receiver)){
+    if (sender === receiver) {
+        throw new ApiError(400, "You cannot message yourself");
+    }
+    if (!mongoose.Types.ObjectId.isValid(receiver)) {
         throw new ApiError(400, "Invalid receiver ID");
+    }
+    
+    const receiverUser = await User.findById(receiver);
+
+    if (!receiverUser) {
+        throw new ApiError(404, "Receiver not found");
     }
 
     const newMessage = await Message.create({
         sender,
         receiver,
-        content : content.trim()
+        content: content.trim()
     });
     const populatedMessage = await newMessage.populate([
-    {
-        path: "sender",
-        select: "username"
-    },
-    {
-        path: "receiver",
-        select: "username"
-    }
-]);
+        {
+            path: "sender",
+            select: "username"
+        },
+        {
+            path: "receiver",
+            select: "username"
+        }
+    ]);
 
     const io = getIO();
 
@@ -41,7 +50,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
             io.to(socketId).emit("receive-message", populatedMessage);
         });
     }
-    const senderSockets= userSocketMap[sender];
+    const senderSockets = userSocketMap[sender];
 
     if (senderSockets) {
         senderSockets.forEach((socketId) => {
@@ -65,7 +74,7 @@ export const getMessages = asyncHandler(async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(otherUserId)) {
         throw new ApiError(400, "Invalid user ID");
     }
-    
+
     const messagesToRead = await Message.find({
         sender: otherUserId,
         receiver: myId,
@@ -82,7 +91,7 @@ export const getMessages = asyncHandler(async (req, res) => {
             $set: { status: "read" }
         }
     );
-    
+
     const io = getIO();
     const senderSockets = userSocketMap[otherUserId];
 
@@ -96,13 +105,13 @@ export const getMessages = asyncHandler(async (req, res) => {
         });
     }
 
-    const page = Math.max(parseInt(req.query.page) || 1,1);
-    const limit =Math.min(
-        Math.max(parseInt(req.query.limit) || 30,1),
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(
+        Math.max(parseInt(req.query.limit) || 30, 1),
         100
     );
 
-    const  skip = (page-1)*limit;
+    const skip = (page - 1) * limit;
 
     const messages = await Message.find({
         $or: [
@@ -116,50 +125,50 @@ export const getMessages = asyncHandler(async (req, res) => {
             },
         ],
     }).sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
+        .skip(skip)
+        .limit(limit)
 
     messages.reverse();
-    
+
     return res.status(200).json({
         messages,
         page,
-        hasMore : messages.length === limit
+        hasMore: messages.length === limit
     }
     );
 })
 
-export const getConversations =asyncHandler(async (req,res) =>{
+export const getConversations = asyncHandler(async (req, res) => {
     const userId = req.user.id;
 
     const messages = await Message.find({
-        $or:[
-            {sender : userId},
-            { receiver : userId}
+        $or: [
+            { sender: userId },
+            { receiver: userId }
         ]
     })
-        .sort({createdAt:-1})
-        .populate("sender","username")
-        .populate("receiver","username");
+        .sort({ createdAt: -1 })
+        .populate("sender", "username")
+        .populate("receiver", "username");
 
-    const conversations =[];
+    const conversations = [];
     const seenUsers = new Set();
 
-    for(const message of messages){
-        const otherUser = 
-            message.sender._id.toString() === userId 
-            ? message.receiver : message.sender;
+    for (const message of messages) {
+        const otherUser =
+            message.sender._id.toString() === userId
+                ? message.receiver : message.sender;
 
         const otherUserId = otherUser._id.toString();
 
-        if(seenUsers.has(otherUserId)){
+        if (seenUsers.has(otherUserId)) {
             continue;
         }
         seenUsers.add(otherUserId);
 
         conversations.push({
-            user:otherUser,
-            lastMessage : message
+            user: otherUser,
+            lastMessage: message
         })
     }
     res.status(200).json({
