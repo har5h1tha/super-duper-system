@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client"
+import ChatSidebar from "../components/chat/ChatSidebar";
 import GroupList from "../components/GroupList";
 import GroupChat from "../components/GroupChat";
 import GroupDetails from "../components/GroupDetails";
 import CreateGroup from "../components/CreateGroup";
 import AddGroupMember from "../components/AddGroupMember";
+import ChatWindow from "../components/ChatWindow";
 
 function Chat({ onLogout }) {
     const [userId, setUserId] = useState(null);
@@ -17,6 +19,7 @@ function Chat({ onLogout }) {
     const [selectedGroup, setSelectedGroup] = useState(null);
     const [groupRefresh, setGroupRefresh] = useState(0);
     const [conversations, setConversations] = useState([]);
+    const [showNewChat, setShowNewChat] = useState(false);
 
     const [messagePage, setMessagePage] = useState(1);
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
@@ -530,7 +533,29 @@ useEffect(() => {
     } catch (error) {
         console.error("Failed to load group details:", error);
     }
-};
+    };
+    const handleSelectUser = (user) => {
+        clearTimeout(typingTimeoutRef.current);
+
+        setSelectedUser(user);
+        selectedUserRef.current = user;
+        setIsTyping(false);
+
+        setMessagePage(1);
+        setHasMoreMessages(true);
+        setMessages([]);
+
+        setConversations((prev) =>
+            prev.map((conversation) =>
+                conversation.user._id === user._id
+                    ? {
+                        ...conversation,
+                        unreadCount: 0
+                    }
+                    : conversation
+            )
+        );
+    };
 
     return (
         <div>
@@ -541,79 +566,17 @@ useEffect(() => {
                     Logged in as: {userId}
                 </p>
             )}
-            <h2>Users</h2>
 
-            <div>
-                {users.map((user) => {
-                    const isOnline = onlineUsers.includes(user._id);
-                    return (
-                        <div key={user._id}
-                            onClick={() => {
-                                clearTimeout(typingTimeoutRef.current);
-
-                                setSelectedUser(user)
-                                selectedUserRef.current = user
-                                setIsTyping(false)
-                            }}
-                        >
-                            {user.username}
-                            <span>{isOnline ? "🟢 Online" : "⚫ Offline"}</span>
-                        </div>
-                    )
-                })}
-
-            </div>
-
-            <h2>Your Contacts</h2>
-            <div>
-                {conversations.map((conversation) => {
-                    const user = conversation.user;
-                    const isOnline = onlineUsers.includes(user._id);
-                    return (
-                        <div key={user._id}
-                            onClick={() => {
-                                clearTimeout(typingTimeoutRef.current);
-
-                                setSelectedUser(user)
-                                selectedUserRef.current = user;
-                                setIsTyping(false)
-                                
-                                setMessagePage(1);
-                                setHasMoreMessages(true);
-                                setMessages([]);
-
-                                setConversations((prev) =>
-                                    prev.map((conversation) =>
-                                        conversation.user._id === user._id
-                                            ? {
-                                                ...conversation,
-                                                unreadCount: 0
-                                            }
-                                            : conversation
-                                    )
-                                );
-                            }}
-                        >
-
-                            <div>
-                                {user.username}
-                                {conversation.unreadCount > 0 && (
-                                    <span>
-                                        {conversation.unreadCount}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div>
-                                {conversation.lastMessage?.content || "NO messages yet"}
-                            </div>
-                            <span>{isOnline ? "🟢 Online" : "⚫ Offline"}</span>
-
-                        </div>
-                    )
-
-                })}
-            </div>
+            <ChatSidebar
+                users={users}
+                conversations={conversations}
+                onlineUsers={onlineUsers}
+                selectedUser={selectedUser}
+                onSelectUser={handleSelectUser}
+                onNewChat={() => setShowNewChat(true)}
+                onCloseNewChat={() => setShowNewChat(false)}
+                showNewChat={showNewChat}
+            />
 
 
             <CreateGroup
@@ -648,66 +611,21 @@ useEffect(() => {
 
             {selectedUser && (
                 <div>
-                    <h2>Chat with {selectedUser.username}</h2>
-                    <p>
-                        {onlineUsers.includes(selectedUser._id) ? "Online" : "Offline"}
-                    </p>
-
-                    <div
-                        ref={messagesContainerRef}
-                        style={{
-                            height: "400px",
-                            overflowY: "auto"
-                        }}
-                        onScroll={(e) => {
-                            if (
-                                e.currentTarget.scrollTop === 0 &&
-                                hasMoreMessages &&
-                                !loadingMessagesRef.current
-                            ) {
-                                previousScrollHeightRef.current =
-                                    e.currentTarget.scrollHeight;
-
-                                setMessagePage(prev => prev + 1);
-                            }
-                        }}
-                    >
-                    {messages.map((message) => {
-                        const senderId = message.sender?._id?.toString() || message.sender?.toString();
-
-                        const isMine = senderId === userId?.toString();
-
-                        return (<div key={message._id}>
-                            {isMine ? "You" : "Them"}: {message.content}
-
-                            {isMine && (
-                                <span>
-                                    {" "}
-                                    {message.status === "sent" && "✓"}
-                                    {message.status === "delivered" && "✓✓"}
-                                    {message.status === "read" && "✓✓BLUE"}
-                                </span>
-                            )}
-                        </div>
-                        )
-                    })}
-                    </div>
-                    <div>
-                        <input
-                            type="text"
-                            placeholder="Type a message..."
-                            value={messageInput}
-                            onChange={handleTyping} />
-
-                        <button onClick={sendMessage}>
-                            Send
-                        </button>
-                        {isTyping && (
-                            <p>
-                                {selectedUser.username} is typing...
-                            </p>
-                        )}
-                    </div>
+                    <ChatWindow
+                        selectedUser={selectedUser}
+                        messages={messages}
+                        messageInput={messageInput}
+                        setMessageInput={setMessageInput}
+                        isTyping={isTyping}
+                        onlineUsers={onlineUsers}
+                        messagesContainerRef={messagesContainerRef}
+                        loadingMessagesRef={loadingMessagesRef}
+                        previousScrollHeightRef={previousScrollHeightRef}
+                        hasMoreMessages={hasMoreMessages}
+                        setMessagePage={setMessagePage}
+                        handleTyping={handleTyping}
+                        sendMessage={sendMessage}
+                    />
                 </div>
             )}
 
