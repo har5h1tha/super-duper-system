@@ -611,6 +611,7 @@ useEffect(() => {
                 <div>
                     <ChatWindow
                         selectedUser={selectedUser}
+                        userId={userId}
                         messages={messages}
                         messageInput={messageInput}
                         setMessageInput={setMessageInput}

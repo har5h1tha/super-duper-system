@@ -4,6 +4,7 @@ import MessageInput from "./chat/MessageInput";
 
 const ChatWindow = ({
     selectedUser,
+    userId,
     messages,
     messageInput,
     setMessageInput,
@@ -26,7 +27,7 @@ const ChatWindow = ({
 
             <MessageList
                 messages={messages}
-                userId={selectedUser._id}
+                userId={userId}
                 messagesContainerRef={messagesContainerRef}
                 hasMoreMessages={hasMoreMessages}
                 loadingMessagesRef={loadingMessagesRef}
