@@ -402,7 +402,6 @@ useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    // Loading older messages
     if (previousScrollHeightRef.current !== null) {
         const newScrollHeight = container.scrollHeight;
 
@@ -415,7 +414,6 @@ useEffect(() => {
         return;
     }
 
-    // Initial load / new message
     container.scrollTop = container.scrollHeight;
 
 }, [messages]);
