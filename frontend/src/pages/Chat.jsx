@@ -510,6 +510,9 @@ useEffect(() => {
         }
     };
     const handleSelectGroup = async (group) => {
+    setSelectedUser(null);
+    selectedUserRef.current = null;
+
     try {
         const token = localStorage.getItem("token");
 
@@ -530,7 +533,6 @@ useEffect(() => {
         }
 
         setSelectedGroup(data.group);
-        setSelectedUser(null);
 
     } catch (error) {
         console.error("Failed to load group details:", error);
@@ -539,6 +541,7 @@ useEffect(() => {
     const handleSelectUser = (user) => {
         clearTimeout(typingTimeoutRef.current);
 
+        setSelectedGroup(null);
         setSelectedUser(user);
         selectedUserRef.current = user;
         setIsTyping(false);
