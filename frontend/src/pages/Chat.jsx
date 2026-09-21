@@ -97,7 +97,7 @@ function Chat({ onLogout }) {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `${API_URL}:3000/api/messages/${selectedUser._id}?page=${messagePage}&limit=30`,
+                `${API_URL}/api/messages/${selectedUser._id}?page=${messagePage}&limit=30`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
