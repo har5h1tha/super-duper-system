@@ -1,0 +1,13 @@
+services:
+  backend:
+    build: .
+    container_name : collabhub-backend
+    ports : 
+     - "3000:3000"
+    env_file:
+     - .env
+  frontend:
+    build : ./frontend
+    container_name : collabhub-frontend
+    ports:
+     - "8080:80"
