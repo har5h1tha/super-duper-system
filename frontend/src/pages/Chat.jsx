@@ -10,6 +10,7 @@ import ChatWindow from "../components/ChatWindow";
 
 function Chat({ onLogout }) {
     const [userId, setUserId] = useState(null);
+    const [username, setUsername] = useState("");
     const [users, setUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -53,6 +54,7 @@ function Chat({ onLogout }) {
             }
 
             setUserId(data.userId);
+            setUsername(data.username);
         };
 
         const getUsers = async () => {
@@ -557,7 +559,7 @@ useEffect(() => {
 
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden text-brand-dark">
-            {/* Sidebar Pane */}
+
             <div className="w-80 flex-shrink-0 border-r border-brand-border/20 bg-white flex flex-col z-20 shadow-sm relative">
                 <div className="flex-1 overflow-hidden flex flex-col">
                     <ChatSidebar
@@ -587,18 +589,18 @@ useEffect(() => {
                 </div>
             </div>
 
-            {/* Main Content Pane */}
+
             <div className="flex-1 flex flex-col bg-gray-50/50 relative min-w-0">
-                {/* Global Header */}
+
                 <div className="h-14 border-b border-brand-border/20 bg-white flex items-center justify-between px-6 z-10 flex-shrink-0">
                     <h1 className="text-lg font-bold text-brand-dark flex items-center gap-2">
                         <div className="w-3 h-3 rounded-sm bg-brand-primary"></div>
                         CollabHub
                     </h1>
                     <div className="flex items-center gap-4">
-                        {userId && (
+                        {username && (
                             <span className="text-sm text-brand-secondary font-medium">
-                                ID: {userId.substring(0, 8)}...
+                                {username}
                             </span>
                         )}
                         <button 
@@ -610,7 +612,7 @@ useEffect(() => {
                     </div>
                 </div>
 
-                {/* Group Details Overlay */}
+  
                 {selectedGroup && (
                     <div className="absolute top-14 right-0 w-80 bottom-0 bg-white border-l border-brand-border/20 shadow-lg z-20 flex flex-col transform transition-transform">
                         <GroupDetails
@@ -633,7 +635,7 @@ useEffect(() => {
                     </div>
                 )}
 
-                {/* Active Chat Area */}
+                
                 <div className="flex-1 overflow-hidden relative flex flex-col">
                     {!selectedUser && !selectedGroup && (
                         <div className="flex-1 flex flex-col items-center justify-center text-brand-secondary">
