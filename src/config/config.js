@@ -1,1 +1,0 @@
-import {PORT,MONGO_URI} from "C../.env"
