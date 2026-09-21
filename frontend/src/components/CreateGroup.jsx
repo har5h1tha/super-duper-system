@@ -37,8 +37,6 @@ const CreateGroup = ({ onGroupCreated }) => {
                 return;
             }
 
-            console.log("GROUP CREATED:", data.group);
-
             setName("");
 
             onGroupCreated(data.group);

@@ -21,19 +21,14 @@ const GroupChat = ({ group, getSocket }) => {
         const socket = getSocket();
 
         if (!socket) {
-            console.log("Socket not connected");
             return;
         }
 
         const groupId = group._id;
 
-        console.log("Joining Group:", groupId);
 
         socket.emit("joinGroup", groupId);
 
-        const handleGroupJoined = ({ groupId }) => {
-            console.log("Group joined:", groupId);
-        };
 
         const handleNewGroupMessage = ({
             groupId: incomingGroupId,
@@ -58,7 +53,6 @@ const GroupChat = ({ group, getSocket }) => {
         };
 
         const handleGroupTyping = (data) => {
-            console.log("RECEIVED GROUP TYPING:", data);
             setTypingUser(data.username);
         };
 
@@ -66,7 +60,6 @@ const GroupChat = ({ group, getSocket }) => {
             setTypingUser(null);
         };
 
-        socket.on("group-joined", handleGroupJoined);
         socket.on("new-group-message", handleNewGroupMessage);
         socket.on("group-error", handleGroupError);
 
@@ -121,7 +114,7 @@ const GroupChat = ({ group, getSocket }) => {
 
             socket.emit("leaveGroup", { groupId });
 
-            socket.off("group-joined", handleGroupJoined);
+
             socket.off("new-group-message", handleNewGroupMessage);
             socket.off("group-error", handleGroupError);
             socket.off("group-user-typing", handleGroupTyping);
@@ -168,7 +161,6 @@ const GroupChat = ({ group, getSocket }) => {
 
             return;
         }
-        console.log("EMITTING GROUP TYPING:", group._id);
         socket.emit("group-typing", {
             groupId: group._id
         });
@@ -184,16 +176,9 @@ const GroupChat = ({ group, getSocket }) => {
         }, 1000);
     };
 
-    // To identify if the current user is the sender (we don't have userId prop here directly,
-    // but we can infer if the token payload matches, though it's simpler to check if sender's token matches
-    // But since we don't have it, we might need a workaround or pass userId as prop. 
-    // Actually, groupMessages have sender. If I can't easily tell, I will just render all on left for now,
-    // or pass userId to GroupChat if possible. Let's just style them practically.)
-    // Wait, in Chat.jsx GroupChat doesn't receive userId. I will just render them cleanly.
-
     return (
         <div className="flex flex-col h-full w-full bg-gray-50/50">
-            {/* Header */}
+
             <div className="h-16 px-6 py-3 border-b border-brand-border/20 bg-white flex items-center justify-between shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded bg-brand-primary/20 border border-brand-primary/30 flex items-center justify-center text-brand-dark font-bold text-lg uppercase">
@@ -210,7 +195,6 @@ const GroupChat = ({ group, getSocket }) => {
                 </div>
             </div>
 
-            {/* Messages */}
             <div 
                 ref={messagesContainerRef}
                 className="flex-1 overflow-y-auto p-4 space-y-4"
@@ -249,7 +233,7 @@ const GroupChat = ({ group, getSocket }) => {
                 })}
             </div>
 
-            {/* Input */}
+
             <div className="p-4 bg-white border-t border-brand-border/20 shrink-0 shadow-sm relative">
                 {typingUser && (
                     <div className="absolute -top-7 left-6 text-xs text-brand-secondary font-medium flex items-center gap-1.5 bg-white/90 px-2 py-1 rounded-t border-t border-x border-brand-border/20">
