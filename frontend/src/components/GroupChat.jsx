@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const GroupChat = ({ group, getSocket }) => {
     const [groupMessages, setGroupMessages] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ const GroupChat = ({ group, getSocket }) => {
 
             try {
                 const response = await fetch(
-                    `http://localhost:3000/api/groups/${groupId}/messages?page=1&limit=20`,
+                    `${API_URL}/api/groups/${groupId}/messages?page=1&limit=20`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`

@@ -8,6 +8,8 @@ import CreateGroup from "../components/CreateGroup";
 import AddGroupMember from "../components/AddGroupMember";
 import ChatWindow from "../components/ChatWindow";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function Chat({ onLogout }) {
     const [userId, setUserId] = useState(null);
     const [username, setUsername] = useState("");
@@ -38,7 +40,7 @@ function Chat({ onLogout }) {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                "http://localhost:3000/api/auth/profile",
+                `${API_URL}/api/auth/profile`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -61,7 +63,7 @@ function Chat({ onLogout }) {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                "http://localhost:3000/api/users",
+                `${API_URL}/api/users`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -95,7 +97,7 @@ function Chat({ onLogout }) {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `http://localhost:3000/api/messages/${selectedUser._id}?page=${messagePage}&limit=30`,
+                `${API_URL}:3000/api/messages/${selectedUser._id}?page=${messagePage}&limit=30`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`
@@ -151,7 +153,7 @@ function Chat({ onLogout }) {
     useEffect(() => {
         const token = localStorage.getItem("token");
 
-        const socket = io("http://localhost:3000", {
+        const socket = io(API_URL, {
             auth: {
                 token
             }
@@ -378,7 +380,7 @@ function Chat({ onLogout }) {
             try {
                 const token = localStorage.getItem("token");
 
-                const response = await fetch("http://localhost:3000/api/messages/conversations",
+                const response = await fetch(`${API_URL}/api/messages/conversations`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`
@@ -429,7 +431,7 @@ useEffect(() => {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-            "http://localhost:3000/api/messages/send",
+           `${API_URL}/api/messages/send`,
             {
                 method: "POST",
                 headers: {
@@ -483,7 +485,7 @@ useEffect(() => {
             const token = localStorage.getItem("token");
 
             const response = await fetch(
-                `http://localhost:3000/api/groups/${selectedGroup._id}/leave`,
+                `${API_URL}/api/groups/${selectedGroup._id}/leave`,
                 {
                     method: "DELETE",
                     headers: {
@@ -512,7 +514,7 @@ useEffect(() => {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-            `http://localhost:3000/api/groups/${group._id}`,
+           `${API_URL}/api/groups/${group._id}`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`
@@ -560,7 +562,7 @@ useEffect(() => {
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden text-brand-dark">
 
-            <div className="w-80 flex-shrink-0 border-r border-brand-border/20 bg-white flex flex-col z-20 shadow-sm relative">
+            <div className="w-80 shrink-0 border-r border-brand-border/20 bg-white flex flex-col z-20 shadow-sm relative">
                 <div className="flex-1 overflow-hidden flex flex-col">
                     <ChatSidebar
                         users={users}
@@ -592,7 +594,7 @@ useEffect(() => {
 
             <div className="flex-1 flex flex-col bg-gray-50/50 relative min-w-0">
 
-                <div className="h-14 border-b border-brand-border/20 bg-white flex items-center justify-between px-6 z-10 flex-shrink-0">
+                <div className="h-14 border-b border-brand-border/20 bg-white flex items-center justify-between px-6 z-10 shrink-0">
                     <h1 className="text-lg font-bold text-brand-dark flex items-center gap-2">
                         <div className="w-3 h-3 rounded-sm bg-brand-primary"></div>
                         CollabHub
