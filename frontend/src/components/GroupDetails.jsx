@@ -37,7 +37,7 @@ const GroupDetails = ({
     };
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col ">
             <div className="p-6 border-b border-brand-border/20 bg-gray-50 shrink-0">
                 <div className="flex items-center gap-3 mb-2">
                     <div className="w-12 h-12 rounded bg-brand-primary/20 border border-brand-primary/30 flex items-center justify-center text-brand-dark font-bold text-xl uppercase">
