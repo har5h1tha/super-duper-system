@@ -556,87 +556,121 @@ useEffect(() => {
     };
 
     return (
-        <div>
-            <h1>CollabHub Chat</h1>
-
-            {userId && (
-                <p>
-                    Logged in as: {userId}
-                </p>
-            )}
-
-            <ChatSidebar
-                users={users}
-                conversations={conversations}
-                onlineUsers={onlineUsers}
-                selectedUser={selectedUser}
-                onSelectUser={handleSelectUser}
-                onNewChat={() => setShowNewChat(true)}
-                onCloseNewChat={() => setShowNewChat(false)}
-                showNewChat={showNewChat}
-            />
-
-
-            <CreateGroup
-                onGroupCreated={() => {
-                    setGroupRefresh(prev => prev + 1);
-                }}
-            />
-
-            <GroupList
-                refresh={groupRefresh}
-                onSelectGroup={handleSelectGroup}
-            />
-        {selectedGroup &&(
-            <GroupDetails
-                group={selectedGroup}
-                userId={userId}
-                onGroupUpdated={(updatedGroup) => {
-                    setSelectedGroup(updatedGroup);
-                }}
-                onLeaveGroup={handleLeaveGroup}
-            />
-        )}
-            {selectedGroup && (
-                <AddGroupMember
-                    group={selectedGroup}
-                    users={users}
-                    onMemberAdded={(updatedGroup) => {
-                        setSelectedGroup(updatedGroup);
-                    }}
-                />
-            )}
-
-            {selectedUser && (
-                <div>
-                    <ChatWindow
-                        selectedUser={selectedUser}
-                        userId={userId}
-                        messages={messages}
-                        messageInput={messageInput}
-                        setMessageInput={setMessageInput}
-                        isTyping={isTyping}
+        <div className="flex h-screen bg-gray-50 overflow-hidden text-brand-dark">
+            {/* Sidebar Pane */}
+            <div className="w-80 flex-shrink-0 border-r border-brand-border/20 bg-white flex flex-col z-20 shadow-sm relative">
+                <div className="flex-1 overflow-hidden flex flex-col">
+                    <ChatSidebar
+                        users={users}
+                        conversations={conversations}
                         onlineUsers={onlineUsers}
-                        messagesContainerRef={messagesContainerRef}
-                        loadingMessagesRef={loadingMessagesRef}
-                        previousScrollHeightRef={previousScrollHeightRef}
-                        hasMoreMessages={hasMoreMessages}
-                        setMessagePage={setMessagePage}
-                        handleTyping={handleTyping}
-                        sendMessage={sendMessage}
+                        selectedUser={selectedUser}
+                        onSelectUser={handleSelectUser}
+                        onNewChat={() => setShowNewChat(true)}
+                        onCloseNewChat={() => setShowNewChat(false)}
+                        showNewChat={showNewChat}
                     />
                 </div>
-            )}
+                
+                <div className="border-t border-brand-border/20 bg-gray-50 flex flex-col max-h-64 overflow-y-auto">
+                    <div className="p-4 border-b border-brand-border/10">
+                        <CreateGroup
+                            onGroupCreated={() => {
+                                setGroupRefresh(prev => prev + 1);
+                            }}
+                        />
+                    </div>
+                    <GroupList
+                        refresh={groupRefresh}
+                        onSelectGroup={handleSelectGroup}
+                    />
+                </div>
+            </div>
 
-            {selectedGroup && (
-                <GroupChat
-                    group={selectedGroup}
-                    getSocket={() => socketRef.current} />
-            )}
+            {/* Main Content Pane */}
+            <div className="flex-1 flex flex-col bg-gray-50/50 relative min-w-0">
+                {/* Global Header */}
+                <div className="h-14 border-b border-brand-border/20 bg-white flex items-center justify-between px-6 z-10 flex-shrink-0">
+                    <h1 className="text-lg font-bold text-brand-dark flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-sm bg-brand-primary"></div>
+                        CollabHub
+                    </h1>
+                    <div className="flex items-center gap-4">
+                        {userId && (
+                            <span className="text-sm text-brand-secondary font-medium">
+                                ID: {userId.substring(0, 8)}...
+                            </span>
+                        )}
+                        <button 
+                            onClick={onLogout}
+                            className="text-sm font-medium text-brand-dark hover:text-brand-primary transition-colors border border-brand-border/30 px-3 py-1.5 rounded bg-white hover:bg-gray-50"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                </div>
 
-            <button onClick={onLogout}>
-                Logout
-            </button>
+                {/* Group Details Overlay */}
+                {selectedGroup && (
+                    <div className="absolute top-14 right-0 w-80 bottom-0 bg-white border-l border-brand-border/20 shadow-lg z-20 flex flex-col transform transition-transform">
+                        <GroupDetails
+                            group={selectedGroup}
+                            userId={userId}
+                            onGroupUpdated={(updatedGroup) => {
+                                setSelectedGroup(updatedGroup);
+                            }}
+                            onLeaveGroup={handleLeaveGroup}
+                        />
+                        <div className="border-t border-brand-border/20 flex-1 overflow-y-auto">
+                            <AddGroupMember
+                                group={selectedGroup}
+                                users={users}
+                                onMemberAdded={(updatedGroup) => {
+                                    setSelectedGroup(updatedGroup);
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Active Chat Area */}
+                <div className="flex-1 overflow-hidden relative flex flex-col">
+                    {!selectedUser && !selectedGroup && (
+                        <div className="flex-1 flex flex-col items-center justify-center text-brand-secondary">
+                            <div className="w-16 h-16 mb-4 rounded-xl bg-gray-100 border border-brand-border/20 flex items-center justify-center">
+                                <svg className="w-8 h-8 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                            </div>
+                            <h2 className="text-xl font-medium text-brand-dark mb-1">Welcome to CollabHub</h2>
+                            <p className="text-sm">Select a contact to start messaging</p>
+                        </div>
+                    )}
+
+                    {selectedUser && (
+                        <ChatWindow
+                            selectedUser={selectedUser}
+                            userId={userId}
+                            messages={messages}
+                            messageInput={messageInput}
+                            setMessageInput={setMessageInput}
+                            isTyping={isTyping}
+                            onlineUsers={onlineUsers}
+                            messagesContainerRef={messagesContainerRef}
+                            loadingMessagesRef={loadingMessagesRef}
+                            previousScrollHeightRef={previousScrollHeightRef}
+                            hasMoreMessages={hasMoreMessages}
+                            setMessagePage={setMessagePage}
+                            handleTyping={handleTyping}
+                            sendMessage={sendMessage}
+                        />
+                    )}
+
+                    {selectedGroup && (
+                        <GroupChat
+                            group={selectedGroup}
+                            getSocket={() => socketRef.current} />
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

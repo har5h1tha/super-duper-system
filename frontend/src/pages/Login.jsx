@@ -34,33 +34,59 @@ const Login = ({ onLogin, onRegister }) => {
     }
 
     return (
-        <div>
-            <h1>CollabHub</h1>
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                <h1 className="text-center text-3xl font-bold tracking-tight text-brand-dark mb-2">CollabHub</h1>
+                <h2 className="text-center text-sm text-brand-secondary">Sign in to your account</h2>
+            </div>
 
-            <form onSubmit={handleLogin}>
-                <input
-                    type="email"
-                    placeholder='email'
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
-                <input
-                    type="password"
-                    placeholder='password'
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
+            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+                <div className="bg-white py-8 px-4 shadow-sm border border-brand-border/20 sm:rounded-lg sm:px-10">
+                    <form className="space-y-6" onSubmit={handleLogin}>
+                        <div>
+                            <label className="block text-sm font-medium text-brand-dark mb-1">Email address</label>
+                            <input
+                                type="email"
+                                placeholder="you@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="block w-full rounded-md border border-brand-border/40 px-3 py-2 text-brand-dark placeholder-gray-400 focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary sm:text-sm"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-brand-dark mb-1">Password</label>
+                            <input
+                                type="password"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="block w-full rounded-md border border-brand-border/40 px-3 py-2 text-brand-dark placeholder-gray-400 focus:border-brand-primary focus:outline-none focus:ring-1 focus:ring-brand-primary sm:text-sm"
+                                required
+                            />
+                        </div>
 
-                <button type='submit'>
-                    Login
-                </button>
+                        <div>
+                            <button
+                                type="submit"
+                                className="flex w-full justify-center rounded-md border border-transparent bg-brand-primary py-2 px-4 text-sm font-medium text-brand-dark hover:bg-brand-hover hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2"
+                            >
+                                Login
+                            </button>
+                        </div>
 
-                <button type="button" onClick={onRegister}>
-                    Create an account
-                </button>
-
-            </form>
-
+                        <div className="text-center mt-4">
+                            <button
+                                type="button"
+                                onClick={onRegister}
+                                className="text-sm font-medium text-brand-secondary hover:text-brand-dark transition-colors"
+                            >
+                                Need an account? Create one
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     )
 }

@@ -19,7 +19,7 @@ const ChatWindow = ({
     sendMessage,
 }) => {
     return (
-        <div>
+        <div className="flex flex-col h-full w-full bg-gray-50/50">
             <ChatHeader
                 selectedUser={selectedUser}
                 onlineUsers={onlineUsers}
